@@ -6,6 +6,10 @@ import os
 from datetime import datetime
 from discord.ext import tasks
 
+# เพิ่ม import สำหรับ Flask และ threading
+from flask import Flask
+from threading import Thread
+
 load_dotenv()
 token = os.getenv('DISCORD_TOKEN')
 
@@ -53,14 +57,12 @@ def create_daily_game_embed(user: discord.Member) -> discord.Embed:
     )
     
     # รูปเกม (ใส่ URL รูปจริงที่ต้องการ)
-    embed.set_image(url="https://gamicsoft.sgp1.digitaloceanspaces.com/28581/conversions/QQ%E6%88%AA%E5%9B%BE20230415192317-big_thumb.jpg")  # ตัวอย่างรูป Wuthering Wave หรือเปลี่ยนเป็นรูปที่ต้องการ
+    embed.set_image(url="https://gamicsoft.sgp1.digitaloceanspaces.com/28581/conversions/QQ%E6%88%AA%E5%9B%BE20230415192317-big_thumb.jpg")
     
     embed.set_footer(text="อย่าลืมสนุกและพักผ่อนด้วยนะครับ 😊")
     embed.set_thumbnail(url=user.avatar.url if user.avatar else "")
     
     return embed
-
-
 
 @bot.event
 async def on_voice_state_update(user: discord.Member, before, after):
@@ -70,8 +72,7 @@ async def on_voice_state_update(user: discord.Member, before, after):
         if user_id not in user_join_status:
             user_join_status[user_id] = True
             await user.send(embed=create_daily_game_embed(user))
-            
-            
+
 @tasks.loop(hours=24)
 async def reset_join_status():
     user_join_status.clear()
@@ -80,5 +81,22 @@ async def reset_join_status():
 @bot.event
 async def on_ready():
     print(f"Bot is ready: {bot.user.name}")
+
+# --- โค้ด Flask เว็บเซิร์ฟเวอร์เล็กๆ เพื่อ uptime ---
+app = Flask('')
+
+@app.route('/')
+def home():
+    return "Bot is running"
+
+def run():
+    app.run(host='0.0.0.0', port=8080)
+
+def keep_alive():
+    t = Thread(target=run)
+    t.start()
+
+# เรียกก่อน bot.run()
+keep_alive()
 
 bot.run(token, log_handler=handler, log_level=logging.DEBUG)
